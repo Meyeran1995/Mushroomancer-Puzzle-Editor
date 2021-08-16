@@ -2,20 +2,24 @@ using UnityEditor;
 using UnityEngine;
 using Utilities;
 
-public static class GridSnapper
+namespace GridTool
 {
-    /// <summary>
-    /// Snaps to a cartesian coordinate system
-    /// </summary>
-    /// <param name="gridCellSize">Grid cell interval</param>
-    public static void SnapToGrid(float gridCellSize)
+    public static class GridSnapper
     {
-        foreach (var go in Selection.gameObjects)
+        /// <summary>
+        /// Snaps to a cartesian coordinate system
+        /// </summary>
+        /// <param name="gridCellSize">Grid cell interval</param>
+        public static void SnapToGrid(float gridCellSize)
         {
-            Undo.RecordObject(go, "Snap Objects");
-            go.transform.position = GetGridCoordinate(gridCellSize, go);
+            foreach (var go in Selection.gameObjects)
+            {
+                Undo.RecordObject(go, "Snap Objects");
+                go.transform.position = GetGridCoordinate(gridCellSize, go);
+            }
         }
-    }
 
-    public static Vector3 GetGridCoordinate(float gridCellSize, GameObject go) => (go.transform.position / gridCellSize).Round() * gridCellSize;
+        public static Vector3 GetGridCoordinate(float gridCellSize, GameObject go) =>
+            (go.transform.position / gridCellSize).Round() * gridCellSize;
+    }
 }
