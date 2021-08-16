@@ -10,6 +10,7 @@ namespace GridTool
         private const string EDITOR_PREF_NAME_CELL = "GridSnapperGridCellSize";
         private const string EDITOR_PREF_NAME_SIZE = "GridSnapperGridSize";
         private const string EDITOR_PREF_NAME_GRIDTYPE = "GridType";
+        private const string EDITOR_PREF_NAME_ANGULARSIZE = "GridSnapperAngularSize";
         private const string GIZMO_HOLDER_NAME = "gizmoHolder";
 
         #endregion
@@ -18,6 +19,7 @@ namespace GridTool
         [SerializeField] private int gridSize;
 
         [SerializeField] private GridType gridType;
+        [Min(0.1f)][SerializeField] private float gridAngularSize;
 
         private GameObject gizmoHolder;
 
@@ -29,8 +31,9 @@ namespace GridTool
             gridCellSize = EditorPrefs.GetFloat(EDITOR_PREF_NAME_CELL);
             gridSize = EditorPrefs.GetInt(EDITOR_PREF_NAME_SIZE);
             gridType = (GridType)EditorPrefs.GetInt(EDITOR_PREF_NAME_GRIDTYPE);
+            gridAngularSize = EditorPrefs.GetFloat(EDITOR_PREF_NAME_ANGULARSIZE);
             CreateGizmoHolder();
-            GridGizmoDrawer.SetParameters(gridCellSize, gridSize);
+            GridGizmoDrawer.SetParameters(gridCellSize, gridSize, gridType, gridAngularSize);
             Selection.selectionChanged += OnSelectionChanged;
         }
 
@@ -53,6 +56,15 @@ namespace GridTool
                 GridGizmoDrawer.SetCellSize(newGridCellSize);
             }
 
+            float newGridAngularSize = EditorGUILayout.FloatField("Angular Size", gridAngularSize);
+
+            if (newGridAngularSize != gridAngularSize)
+            {
+                Undo.RecordObject(this, "Changed Snap Tool Grid Angular Size");
+                gridAngularSize = newGridAngularSize;
+                GridGizmoDrawer.SetAngularSize(newGridAngularSize);
+            }
+
             int newGridSize = EditorGUILayout.IntField("Render Size", gridSize);
 
             if (newGridSize != gridSize)
@@ -68,7 +80,7 @@ namespace GridTool
             {
                 Undo.RecordObject(this, "Changed Grid Type");
                 gridType = newGridType;
-                //GridGizmoDrawer.SetGridType(gridType);
+                GridGizmoDrawer.SetGridType(gridType);
             }
 
             using (new EditorGUI.DisabledScope(Selection.gameObjects.Length == 0))
@@ -85,6 +97,7 @@ namespace GridTool
         private void OnDestroy()
         {
             EditorPrefs.SetFloat(EDITOR_PREF_NAME_CELL, gridCellSize); // gets called when window is closed
+            EditorPrefs.SetFloat(EDITOR_PREF_NAME_ANGULARSIZE, gridAngularSize);
             EditorPrefs.SetInt(EDITOR_PREF_NAME_SIZE, gridSize);
             EditorPrefs.SetInt(EDITOR_PREF_NAME_GRIDTYPE, (int)gridType);
 

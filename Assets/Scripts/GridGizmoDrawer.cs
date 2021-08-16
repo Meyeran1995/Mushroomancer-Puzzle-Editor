@@ -1,4 +1,5 @@
 using UnityEngine;
+using Utilities;
 
 namespace GridTool
 {
@@ -10,54 +11,44 @@ namespace GridTool
 
         private static int renderSize;
         private static float cellSize;
+
         private static GridType gridType;
-
-        //private void Awake() => center = transform.position;
-
-        //public static void SetCenter()
-        //{
-        //    if (Selection.gameObjects.Length == 1)
-        //    {
-        //        center = Selection.gameObjects[0].transform.position;
-        //    }
-        //    else
-        //    {
-        //        float cX = 0, cY = 0, cZ = 0;
-
-        //        foreach (var go in Selection.gameObjects)
-        //        {
-        //            cX += go.transform.position.x;
-        //            cY += go.transform.position.y;
-        //            cZ += go.transform.position.z;
-        //        }
-
-        //        center = new Vector3(cX, cY, cZ) / Selection.gameObjects.Length;
-        //    }
-        //    Debug.Log(center);
-        //}
+        private static float angularSize;
 
         public static void SetRenderSize(int newRenderSize) => renderSize = newRenderSize;
         public static void SetCellSize(float newCellSize) => cellSize = newCellSize;
+        public static void SetGridType(GridType newGridType) => gridType = newGridType;
+        public static void SetAngularSize(float newAngularSize) => angularSize = newAngularSize;
 
-        public static void SetParameters(float newCellSize, int newRenderSize)
+        public static void SetParameters(float newCellSize, int newRenderSize, GridType newGridType, float newAngularSize)
         {
             cellSize = newCellSize;
             renderSize = newRenderSize;
+            gridType = newGridType;
+            angularSize = newAngularSize;
         }
 
         private void OnDrawGizmos()
         {
-            Vector3 lengthVec = Vector3.right * cellSize * renderSize,
-                moveVec = Vector3.forward * cellSize;
+            if (gridType == GridType.CARTESIAN)
+            {
+                Vector3 lengthVec = Vector3.right * cellSize * renderSize,
+                    moveVec = Vector3.forward * cellSize;
 
-            //draw horizontal lines
-            DrawGridLines(lengthVec, moveVec);
+                //draw horizontal lines
+                DrawGridLines(lengthVec, moveVec);
 
-            //draw vertical lines
-            lengthVec = Vector3.forward * cellSize * renderSize;
-            moveVec = Vector3.right * cellSize;
+                //draw vertical lines
+                lengthVec = Vector3.forward * cellSize * renderSize;
+                moveVec = Vector3.right * cellSize;
 
-            DrawGridLines(lengthVec, moveVec);
+                DrawGridLines(lengthVec, moveVec);
+            }
+            else
+            {
+                DrawGridCircles();
+                DrawRotatedGridLines();
+            }
         }
 
         private void DrawGridLines(Vector3 lengthVec, Vector3 moveVec)
@@ -73,6 +64,44 @@ namespace GridTool
 
                 lineOrigin = transform.position - moveVec * i;
                 Gizmos.DrawLine(lineOrigin + lengthVec, lineOrigin - lengthVec);
+            }
+        }
+
+        private void DrawRotatedGridLines()
+        {
+            Vector3 lengthVec = Vector3.right * cellSize * renderSize;
+
+            if (angularSize == 0f)
+                angularSize = 0.1f;
+
+            for (float a = 0f; a < 360f; a += angularSize)
+            {
+                Gizmos.DrawLine(transform.position, transform.position + Quaternion.AngleAxis(a, Vector3.up) * lengthVec);
+            }
+        }
+
+        private void DrawGridCircles()
+        {
+            for (int i = 0; i < renderSize; i++)
+            {
+                DrawGridCircle(cellSize * i);
+            }
+        }
+
+        private void DrawGridCircle(float radius)
+        {
+            Vector3[] circle = GizmoUtils.DrawCircleGizmo(radius, transform.position);
+
+            for (var i = 0; i < circle.Length;)
+            {
+                if (i + 1 < circle.Length)
+                {
+                    Gizmos.DrawLine(circle[i], circle[++i]);
+                }
+                else
+                {
+                    Gizmos.DrawLine(circle[i++], circle[0]);
+                }
             }
         }
 
