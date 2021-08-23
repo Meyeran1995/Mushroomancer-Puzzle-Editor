@@ -10,6 +10,7 @@ namespace GridTool
         private const string EDITOR_PREF_NAME_CELL = "GridSnapperGridCellSize";
         private const string EDITOR_PREF_NAME_SIZE = "GridSnapperGridSize";
         private const string EDITOR_PREF_NAME_GRIDTYPE = "GridType";
+        private const string EDITOR_PREF_NAME_GRIDCENTER = "GridCenter";
         private const string EDITOR_PREF_NAME_ANGULARSIZE = "GridSnapperAngularSize";
         private const string GIZMO_HOLDER_NAME = "gizmoHolder";
 
@@ -21,6 +22,7 @@ namespace GridTool
         [SerializeField] private GridType gridType;
         [Min(0.1f)][SerializeField] private float gridAngularSize;
 
+        [SerializeField] private GridDrawMode gridDrawMode;
         private GameObject gizmoHolder;
 
         [MenuItem("Window/Grid Snap Tool")]
@@ -31,6 +33,7 @@ namespace GridTool
             gridCellSize = EditorPrefs.GetFloat(EDITOR_PREF_NAME_CELL);
             gridSize = EditorPrefs.GetInt(EDITOR_PREF_NAME_SIZE);
             gridType = (GridType)EditorPrefs.GetInt(EDITOR_PREF_NAME_GRIDTYPE);
+            gridDrawMode = (GridDrawMode)EditorPrefs.GetInt(EDITOR_PREF_NAME_GRIDCENTER);
             gridAngularSize = EditorPrefs.GetFloat(EDITOR_PREF_NAME_ANGULARSIZE);
             CreateGizmoHolder();
             GridGizmoDrawer.SetParameters(gridCellSize, gridSize, gridType, gridAngularSize);
@@ -56,15 +59,6 @@ namespace GridTool
                 GridGizmoDrawer.SetCellSize(newGridCellSize);
             }
 
-            float newGridAngularSize = EditorGUILayout.FloatField("Angular Size", gridAngularSize);
-
-            if (newGridAngularSize != gridAngularSize)
-            {
-                Undo.RecordObject(this, "Changed Snap Tool Grid Angular Size");
-                gridAngularSize = newGridAngularSize;
-                GridGizmoDrawer.SetAngularSize(newGridAngularSize);
-            }
-
             int newGridSize = EditorGUILayout.IntField("Render Size", gridSize);
 
             if (newGridSize != gridSize)
@@ -72,6 +66,27 @@ namespace GridTool
                 Undo.RecordObject(this, "Changed Snap Tool Render Size");
                 gridSize = newGridSize;
                 GridGizmoDrawer.SetRenderSize(newGridSize);
+            }
+
+            GridDrawMode newGridDrwDrawMode = (GridDrawMode)EditorGUILayout.EnumPopup("Grid DrawMode", gridDrawMode);
+
+            if (newGridDrwDrawMode != gridDrawMode)
+            {
+                Undo.RecordObject(this, "Changed Grid Draw Mode");
+                gridDrawMode = newGridDrwDrawMode;
+                CenterGizmoHolder();
+            }
+
+            if (gridType == GridType.POLAR)
+            {
+                float newGridAngularSize = EditorGUILayout.FloatField("Angular Size", gridAngularSize);
+
+                if (newGridAngularSize != gridAngularSize)
+                {
+                    Undo.RecordObject(this, "Changed Snap Tool Grid Angular Size");
+                    gridAngularSize = newGridAngularSize;
+                    GridGizmoDrawer.SetAngularSize(newGridAngularSize);
+                }
             }
 
             GridType newGridType = (GridType)EditorGUILayout.EnumPopup("Grid Type", gridType);
@@ -87,10 +102,16 @@ namespace GridTool
             {
                 if (!GUILayout.Button("Snap Selection")) return;
 
-                GridSnapper.SnapToGrid(gridCellSize);
+                if (gridType == GridType.CARTESIAN)
+                {
+                    GridSnapper.SnapToGrid(gridCellSize);
+                }
+                else
+                {
+                    GridSnapper.SnapToGrid(gridCellSize, gridAngularSize);
+                }
 
-                if (gizmoHolder)
-                    gizmoHolder.transform.position = GridSnapper.GetGridCoordinate(gridCellSize, Selection.activeGameObject);
+                CenterGizmoHolder();
             }
         }
 
@@ -100,22 +121,23 @@ namespace GridTool
             EditorPrefs.SetFloat(EDITOR_PREF_NAME_ANGULARSIZE, gridAngularSize);
             EditorPrefs.SetInt(EDITOR_PREF_NAME_SIZE, gridSize);
             EditorPrefs.SetInt(EDITOR_PREF_NAME_GRIDTYPE, (int)gridType);
+            EditorPrefs.SetInt(EDITOR_PREF_NAME_GRIDCENTER, (int)gridDrawMode);
 
             if (gizmoHolder)
                 DestroyImmediate(gizmoHolder);
         }
 
-        private void OnLostFocus()
-        {
-            if (gizmoHolder && Selection.gameObjects.Length == 0)
-                DestroyImmediate(gizmoHolder);
-        }
+        //private void OnLostFocus()
+        //{
+        //    if (gizmoHolder && Selection.gameObjects.Length == 0)
+        //        DestroyImmediate(gizmoHolder);
+        //}
 
-        private void OnFocus()
-        {
-            if (!gizmoHolder)
-                CreateGizmoHolder();
-        }
+        //private void OnFocus()
+        //{
+        //    if (!gizmoHolder)
+        //        CreateGizmoHolder();
+        //}
 
         private void CreateGizmoHolder()
         {
@@ -125,15 +147,32 @@ namespace GridTool
                 gizmoHolder = new GameObject(GIZMO_HOLDER_NAME, typeof(GridGizmoDrawer));
         }
 
+        private void CenterGizmoHolder()
+        {
+            if (!gizmoHolder)
+                CreateGizmoHolder();
+
+            if (gridDrawMode == GridDrawMode.WORLDSPACE || Selection.gameObjects.Length == 0)
+            {
+                gizmoHolder.transform.position = Vector3.zero;
+            }
+            else if(gridType == GridType.CARTESIAN)
+            {
+                gizmoHolder.transform.position = GridSnapper.GetGridCoordinate(gridCellSize, Selection.activeGameObject);
+            }
+            else
+            {
+                gizmoHolder.transform.position = GridSnapper.GetGridCoordinate(gridCellSize, gridAngularSize, Selection.activeGameObject);
+            }
+
+            Repaint();
+        }
+
         private void OnSelectionChanged()
         {
             if (Selection.gameObjects.Length != 0)
             {
-                if (!gizmoHolder)
-                    CreateGizmoHolder();
-
-                gizmoHolder.transform.position = GridSnapper.GetGridCoordinate(gridCellSize, Selection.activeGameObject);
-                Repaint();
+                CenterGizmoHolder();
             }
             else
             {

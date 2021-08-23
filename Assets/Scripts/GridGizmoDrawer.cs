@@ -5,6 +5,8 @@ namespace GridTool
 {
     public enum GridType { CARTESIAN, POLAR }
 
+    public enum GridDrawMode { WORLDSPACE, LOCALSPACE}
+
     public class GridGizmoDrawer : MonoBehaviour
     {
 #if UNITY_EDITOR
